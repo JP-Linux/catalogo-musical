@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import List, Optional
 from Banco_Dados import BancoDeDadosMusica
 from tocador import tocar
+from random import shuffle
 
 
 @dataclass
@@ -161,8 +162,10 @@ class Player:
         for musica in self._playlist_atual:
             musica.tocar(video=self.video, volume=self.volume)
 
-    def tocar_musicas(self, musicas: List[Musica]):
+    def tocar_musicas(self, musicas: List[Musica], aleatorio: bool):
         """Toca uma lista de músicas"""
+        if aleatorio:
+            shuffle(musicas)
         self.criar_playlist(musicas)
         self.tocar_playlist()
 
@@ -183,15 +186,15 @@ class ServicoMusical:
         musicas = self.catalogo.buscar_musicas()
         self.player.tocar_musicas(musicas)
 
-    def tocar_por_artista(self, artista_id: int):
+    def tocar_por_artista(self, artista_id: int, aleatorio: bool):
         """Toca músicas de um artista"""
         musicas = self.catalogo.buscar_por_artista(artista_id)
-        self.player.tocar_musicas(musicas)
+        self.player.tocar_musicas(musicas, aleatorio)
 
-    def tocar_por_genero(self, genero_id: int):
+    def tocar_por_genero(self, genero_id: int, aleatorio: bool):
         """Toca músicas de um gênero"""
         musicas = self.catalogo.buscar_por_genero(genero_id)
-        self.player.tocar_musicas(musicas)
+        self.player.tocar_musicas(musicas, aleatorio)
 
     def fechar(self):
         """Fecha todos os recursos"""
@@ -271,7 +274,8 @@ class InterfaceUsuario:
         print(f"Gênero: {genero}")
 
         if input("\nConfirmar? (s/n): ").lower() == 's':
-            musica = self.servico.adicionar_musica(titulo, url, artista, genero)
+            musica = self.servico.adicionar_musica(
+                titulo, url, artista, genero)
             print(f"✅ Música '{musica.titulo}' adicionada com sucesso!")
 
     def listar_musicas(self):
@@ -291,7 +295,7 @@ class InterfaceUsuario:
 
         genero = self.selecionar_opcao(generos, "SELECIONE UM GÊNERO")
         if genero:
-            self.servico.tocar_por_genero(genero.id)
+            self.servico.tocar_por_genero(genero.id, self.modo_aleatorio)
 
     def tocar_por_artista(self):
         """Interface para tocar por artista"""
@@ -302,7 +306,7 @@ class InterfaceUsuario:
 
         artista = self.selecionar_opcao(artistas, "SELECIONE UM ARTISTA")
         if artista:
-            self.servico.tocar_por_artista(artista.id)
+            self.servico.tocar_por_artista(artista.id, self.modo_aleatorio)
 
     def mostrar_estatisticas(self):
         """Mostra estatísticas do catálogo"""
@@ -313,6 +317,12 @@ class InterfaceUsuario:
         print(f"🎤 Artistas: {stats['artistas']}")
         print(f"🎭 Gêneros: {stats['generos']}")
 
+    def aleatorio(self):
+        ativar = input("Ativar modo aleatório?[S/n]: ").lower()
+        if "s" in ativar:
+            return True
+        return False
+
     def executar(self):
         """Loop principal da aplicação"""
         while self.executando:
@@ -321,12 +331,16 @@ class InterfaceUsuario:
             try:
                 opcao = int(input("\nEscolha uma opção: "))
 
+                if opcao >= 3 and opcao <= 5:
+                    # Opção para tocar músicas de forma aleatória
+                    self.modo_aleatorio = self.aleatorio()
+
                 if opcao == 1:
                     self.adicionar_musica()
                 elif opcao == 2:
                     self.listar_musicas()
                 elif opcao == 3:
-                    self.servico.tocar_todas()
+                    self.servico.tocar_todas(self.modo_aleatorio)
                 elif opcao == 4:
                     self.tocar_por_genero()
                 elif opcao == 5:
